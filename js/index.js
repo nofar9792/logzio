@@ -48,7 +48,7 @@ function createModule(module) {
         if (key == module) {
             for (value of Object.keys(shipperData[key])) {
                 count = data[sourceName][key][value].metric_count;
-                numOfSourcesInput = createNumOfSourcesInput(key, value);
+                numOfSourcesInput = createNumOfSourcesInput(sourceName, key, value);
 
 
                 rowsContainer.appendChild(createMetricsRow(numOfSourcesInput));
@@ -87,30 +87,27 @@ function calculateMetrics() {
 }
 
 function addSources() {
-    const sourceName = document.getElementById("select").value;
-
     if (!this.value) {
-        dict[`${sourceName}.${this.id}`] = 0;
+        dict[`${this.id}`] = 0;
     } else {
-        dict[`${sourceName}.${this.id}`] = parseInt(this.value);
+        dict[`${this.id}`] = parseInt(this.value);
     }
 }
 
 function removeModule() {
     Array.from(Array.from(this.parentElement.parentElement.children)[2].children).filter(element => element.classList.contains('row')).forEach(row => {
         var input = row.children[0].childNodes[1].children[1];;
-        const sourceName = this.parentElement.parentElement.sourceName;
 
-        delete dict[`${sourceName}.${input.id}`];
+        delete dict[`${input.id}`];
     });
 
     this.parentElement.parentElement.remove();
     calculateMetrics();
 }
 
-function createNumOfSourcesInput(key, value) {
+function createNumOfSourcesInput(sourceName, key, value) {
     let input = document.createElement('input');
-    input.id = key + "." + value;
+    input.id = sourceName + "." + key + "." + value;
     input.moduleName = key;
     input.type = "number";
     input.onkeydown = function (e) {
@@ -130,9 +127,16 @@ function createNumOfSourcesInput(key, value) {
 }
 
 function calculateModule(moduleName) {
-    const sumOfModule = Array.from($(`[id^=${moduleName}\\.]`)).reduce((sum, { value }) => {
+
+    var sourceName = $(`#${moduleName}`)[0].sourceName;
+
+    const sumOfModule = Array.from($(`[id^=${sourceName}\\.${moduleName}\\.]`)).reduce((sum, { value, id }) => {
+        var props = id.split(".");
+        var sourceName = props[0];
+        var moduleName = props[1];
+        var metricsetName = props[2];
         if (value) {
-            sum += parseInt(value);
+            sum += parseInt(value) * parseInt(data[sourceName][moduleName][metricsetName]["metric_count"]);
         }
         return sum;
     }, 0)
@@ -183,8 +187,7 @@ function changeNumOfSourceForAllHandler(e) {
     for (let i = 1; i < inputElements.length; i++) {
         const element = inputElements[i];
         element.value = valueToChangeTo;
-        const sourceName = document.getElementById("select").value;
-        dict[`${sourceName}.${element.id}`] = element.value;
+        dict[`${element.id}`] = element.value;
     }
 
     calculateMetrics();
